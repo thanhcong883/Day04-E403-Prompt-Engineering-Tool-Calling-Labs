@@ -249,11 +249,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Grade saved JSON output for the order-agent lab")
     parser.add_argument("--module", default="solution.agent.graph")
     parser.add_argument("--cases", default=str(ROOT_DIR / "data" / "graded_cases.json"))
-    parser.add_argument("--provider", default="google", choices=["google", "ollama"])
+    parser.add_argument("--provider", default="google", choices=["google", "ollama", "openai"])
     parser.add_argument("--model-name", default=None)
     parser.add_argument("--today", default="2026-06-01")
     parser.add_argument("--pass-threshold", type=float, default=80.0)
-    parser.add_argument("--judge-provider", default=None, choices=["google", "ollama"])
+    parser.add_argument("--judge-provider", default=None, choices=["google", "ollama", "openai"])
+
     parser.add_argument("--judge-model-name", default=None)
     args = parser.parse_args()
 
@@ -267,6 +268,7 @@ def main() -> int:
         effective_judge_provider = args.provider
 
     scores: list[CaseScore] = []
+    import time
     for case in cases:
         raw_result = module.run_agent(
             case["query"],
@@ -283,6 +285,8 @@ def main() -> int:
                 judge_model_name=args.judge_model_name,
             )
         )
+        time.sleep(13.0)
+
 
     summary = summarize_scores(scores)
     print(json.dumps(summary, indent=2, ensure_ascii=False))

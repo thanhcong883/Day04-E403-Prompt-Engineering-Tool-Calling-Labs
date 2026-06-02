@@ -10,6 +10,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+# Rate limiting for Gemini Free Tier (5 RPM)
+import time
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+original_generate = ChatGoogleGenerativeAI._generate
+original_agenerate = ChatGoogleGenerativeAI._agenerate
+
+def new_generate(self, *args, **kwargs):
+    time.sleep(13.0)
+    return original_generate(self, *args, **kwargs)
+
+async def new_agenerate(self, *args, **kwargs):
+    import asyncio
+    await asyncio.sleep(13.0)
+    return await original_agenerate(self, *args, **kwargs)
+
+ChatGoogleGenerativeAI._generate = new_generate
+ChatGoogleGenerativeAI._agenerate = new_agenerate
+
+
+
 def normalize_content(raw: Any) -> str:
     if isinstance(raw, str):
         return raw.strip()
@@ -40,6 +61,14 @@ def build_chat_model(
             temperature=temperature,
             google_api_key=os.getenv("GOOGLE_API_KEY"),
         )
+    if provider == "openai":
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=model_name or os.getenv("OPENAI_MODEL", "gpt-4o"),
+            temperature=temperature,
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
     if provider == "ollama":
         from langchain_ollama import ChatOllama
 
@@ -48,7 +77,8 @@ def build_chat_model(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             temperature=temperature,
         )
-    raise ValueError("This lab supports only the `google` and `ollama` providers.")
+    raise ValueError("This lab supports only the `google`, `openai`, and `ollama` providers.")
+
 
 
 def extract_json_object(raw: Any) -> dict[str, Any]:
